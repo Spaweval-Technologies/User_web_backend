@@ -1,25 +1,13 @@
-const pool = require("../db");
+const pool = require("../../db");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-const signup = async (req, res) => {
-  const { name, email, password } = req.body;
-
-  try {
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = await pool.query(
-      "INSERT INTO user_web (name, email, password) VALUES ($1, $2, $3) RETURNING id, name, email",
-      [name, email, hashedPassword]
-    );
-    res.status(201).json(newUser.rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Signup failed" });
-  }
-};
-
 const login = async (req, res) => {
   const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: "Email and password are required" });
+  }
 
   try {
     const userResult = await pool.query(
@@ -37,7 +25,7 @@ const login = async (req, res) => {
     }
 
     const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
+      expiresIn: process.env.JWT_EXPIRATION_TIME,
     });
     res.json({
       token,
@@ -49,4 +37,6 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { signup, login };
+module.exports = {
+  login,
+};
